@@ -6,7 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.fc.spring.dao.StudentDao;
+import com.fc.springmvc.dao.StudentDao;
 import com.fc.springmvc.domain.Student;
 import com.fc.springmvc.service.StudentService;
 /**

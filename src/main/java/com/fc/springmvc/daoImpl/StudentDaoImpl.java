@@ -3,7 +3,8 @@ package com.fc.springmvc.daoImpl;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Repository;
-import com.fc.spring.dao.StudentDao;
+
+import com.fc.springmvc.dao.StudentDao;
 import com.fc.springmvc.domain.Student;
 
 /**

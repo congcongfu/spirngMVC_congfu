@@ -1,4 +1,4 @@
-package com.fc.spring.dao;
+package com.fc.springmvc.dao;
 
 import java.util.List;
 import java.util.Map;
