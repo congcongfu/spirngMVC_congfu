@@ -1,0 +1,258 @@
+
+
+						ElasticSearch  学习
+
+	一.安装
+	
+		下载安装包 地址  https://www.elastic.co/downloads/elasticsearch 可以下载zip 或者tar文件 取决于你的喜好
+
+		windows直接下载就好   linux 或者mac， sodu wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/5.0.0-alpha3/elasticsearch-5.0.0-alpha3.zip
+
+		下载之后解压后可用 windows 直接解压文件名改为ElasticSearch    linu或mac tar -xvf elasticsearch-5.0.0-alpha3.zip
+		然后进入bin目录中 运行elasticsearch.bat 然后本地就跑起来了  打开网页输入http://localhost:9200/ 可以看到相应的信息
+
+		然后下载一个elasticsearch-head插件 放到ElasticSerch 文件夹中的plugins文件夹中地址为https://github.com/mobz/elasticsearch-head.git
+
+		然后解压更名为head文件夹 打来网页输入http://localhost:9200/_plugin/head/ 可以看到一个管理页面。这样就可以开始使用了
+
+
+	二.初步使用
+		1.查看集群节点列表
+		在浏览器中输入 localhost:9200/_cat/nodes?v  这是一个GET请求
+
+	得到    host                        ip        heap.percent      ram.percent       load node.role    master name          
+               
+127.0.0.1                  127.0.0.1            4          59 -1.00 d         *              Jean-Paul Beaubier 
+
+	
+	因为是单机的 所以只有一个节点 Jean-Paul Beaubier 
+	
+		2.创建一个索引
+		       直接用head插件新建索引就好了 新建索引的时候默认5个分片 一个备份  然后又一个黄色标签意味着复制没有被配，现在
+		还是单机的情况，只有一个节点，复制分配不了，等到拎一个节点加入集群的时候，复制分配之后，节点的健康变成绿色
+		使用postman的时候最好请求的url 和 参数分开这样直观
+		
+		3.列出所有索引
+		地址栏中输入localhost:9200/_cat/indices?v 返回
+		health status index  pri rep docs.count docs.deleted store.size pri.store.size 
+
+		yellow open   pretty   5   1          0            0       795b           795b 
+		表明已经有索引生成了
+
+		4.添加一条信息
+		我是使用postman来的使用post请求 url为 http://localhost:9200/index/man/1 数据类型选择json
+		{ "name":"Frank","job":"Doctor","priority":12,"wife":"Tina"}
+		添加成功之后 使用get请求 http://localhost:9200/index/man/1
+
+		返回{
+  "_index": "index",
+  
+			"_type": "man",
+ 
+			 "_id": "1",
+  
+			"_version": 1,
+ 
+			 "found": true,
+			
+  "_source": {
+  
+				  "name": "Eric!",
+   
+				 "age": "22",
+  
+				  "priority": 10,
+  
+				  "job": "Lowyer",
+  
+				  "wife": "Alice"
+ 
+			 }
+			
+}
+
+		elasticsearch默认不是按照自增的方式帮我们生成id的，而是自动生成22位的URL安全的_id 
+		比如:
+		{
+        
+		"_index": "index",
+      
+		  "_type": "man",
+        
+		"_id": "AVWbecwtTZPKhYMJ_1EI",
+    
+		    "_score": 0.5945348,
+      
+		  "_source": {
+         
+			 "name": "Round",
+       
+			   "job": "Doctor",
+      
+			    "priority": 12,
+       
+			   "wife": "Anna"
+    
+		    }
+
+		修改也可以使用相同的方法 插入数据 然后每次返回的verson都不一样，修改一次返回一个version
+
+
+		5.使用 doc 来修改信息
+		post 请求 url为 http://localhost:9200/index/man/1/_update?pretty
+		修改的json信息为 {"doc":{"age":33}},或者 {"doc":{"age":33,"job":"fammer"}} 可以更新部分信息
+
+		6.使用 script 来修改信息
+
+		post 请求 url 为 http://localhost:9200/index/man/1/_update?pretty
+		json信息 {"script":"ctx._source.name=\"Fammer\""}
+
+		7.查询 信息
+		
+		get请求 url为 http://localhost:9200/index/man/1/_search?
+		参数 q=job:Doctor&pretty=true
+		参数不区分大小写
+		返回参数格式是json形式
+		{
+  "took": 6,
+ 
+		 "timed_out": false,
+  
+		"_shards": {
+   
+			 "total": 5,
+   
+			 "successful": 5,
+   
+			 "failed": 0
+ 
+			 },
+ 
+ 		"hits": {
+   
+			 "total": 1,
+  
+			  "max_score": 0.30685282,
+   
+			 "hits": [
+   
+			   {
+       
+				 "_index": "index",
+      
+				  "_type": "man",
+   
+				     "_id": "1",
+   
+				     "_score": 0.30685282,
+  
+				      "_source": {
+    
+					      "name": "Eric",
+  
+					        "age": 33,
+   
+					       "priority": 10,
+     
+					     "job": "Doctor",
+   
+					       "wife": "Alice"
+   
+					     }
+ 
+				     }
+   
+				 ]
+
+			  }
+
+		}
+
+		**搜索不等于的条件**
+		get请求url 为 http://localhost:9200/index/man/1/_search?
+		参数q=-job:Doctor&pretty=true  在属性前加一个"-"符号、
+
+		（2）：使用query查询
+			插入数据
+			{
+				"titile": "杜兰特加入勇士！",
+         
+ 				"publishTime": "2016-07-06",
+         
+ 				"content": "最近NBA市场的新闻还是挺火爆的，甜瓜刚组建了梦幻夺冠对，就爆出杜兰特底薪加入勇士的新闻！甜瓜估计半夜哭晕在厕所，杜兰特看来真心是奔着总冠军去的吧！希望来年的比赛不要太好看！",
+
+          			"publishMan": "你二哥！"
+			}
+			{
+				"query":{
+					"match":{
+						"content":"杜兰特"
+					}
+				}
+			}
+		
+			这样的查询其实是全文搜索的，elasticsearch 自带的分词是比较粗暴的 会把中文分的颗粒度十分的细会把 杜兰特 分为 杜兰和特 只要出现杜兰 和 特的地方都会查找出
+	
+			事实就是这样的，想要提高精度必须把分词做好，这个可以用第三方的分词插件。
+
+			用match_prase 的话会精确命中
+			{
+				"query":{
+					"match_phrase":"杜兰特"
+				}
+			}
+			这样就能精确的命中这个词语了
+
+		8、聚合 （aggregations）允许在数据上生成复杂的分析统计，有点像sql中的group by
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

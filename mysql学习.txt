@@ -1,0 +1,396 @@
+
+   mysql 学习笔记
+
+  一。索引
+
+     1.建索引
+
+	alert table LogisticsCompany add INDEX partyName（partyName）普通索引
+	create INDEX partyName on LogisticsCompany（partyName）
+	
+	alert table LogisticsCompany add UNIQUE（partyName）字段中不能有重复
+	CREATE UNIQUE INDEX partyName on LogisticsCompany（partyName）
+
+    2.删索引
+	alert table LogisticsCompany drop INDEX partyName
+	drop INDEX partyName on LogisticsCompany
+
+	Alert table LogisticsCompany DROP PRIMARY KEY
+
+     3.查看索引
+	show index from LogisticsCompany
+	show keys from LogisticsCompany
+  
+     用过的索引方法（BTREE, FULLTEXT, HASH, RTREE）
+	生成B-Tree可以提高搜索效率，普通搜索是查找二叉树，查找的次数为log2N ，建立索引之后变为logbN b的值越大查找速率越快。
+	1.Hash索引的查询效率远高于BTree索引，虽然效率高但有其局限性，Hash索引仅仅只能满足“=”，“IN”和“<=>”，不能使用范围查询，
+    由于Hash索引比较的是进行Hash运算之后的Hash值，之恩能够用于等值的过滤，不能基于范围的过滤，因为经过相应的Hash算法处理之后的Hash值的大小关系，
+    不能保证和Hash运算前完全一样。
+	
+	2.Hash索引无法用来避免数据的排序操作。
+	Hash值都是经过Hash计算之后的值，而且Hash值的大小关系并不一定和Hash运算前的键值完全一样。
+
+	3.Hash索引不能利用部分索引查询。
+	对于组合索引，Hash索引在计算Hash值的时候是组合索引键值合并之后再一起计算Hash值，而不是单独计算的Hash值，所以通过组合索引的前面一个或
+    几个索引进行查询的时候，Hash索引无法被利用
+
+	4.Hash索引在任何时候都不能避免表的扫描。
+	将Hash运算的结果的Hash值所对应的行指针信息存放在一个Hash表中，由于不同索引键存在相同的Hash值，所以即便满足某个Hash键值的数据的记录条数，
+    也无法从Hash索引中直接完成查询，还是要通过访问表中的实际数据进行相应的比较
+
+	4.Hash索引不能使用Order by 和Group by 操作
+
+	索引虽然加快了查询速度，单索引也是有代价的：索引本身消耗存储空间，同时索引会加重插入，删除和修改记录的负担，mysql在运行时也要消耗资源维护索引
+     所以索引并不是越多越好，有两种情况不建议建索引。
+	1.表中数量较少时，比如少于2000条时直接全表搜索即可
+	2.索引的选择性较低，指的是不重复的索引值（也叫基数，Cardinality）与表记录数（#T）的比值。
+          Index Selectivity = Cardinality / #T 
+	SQL 如下
+	SELECT COUNT(DISTINCT(partyName)) /count(*) as Selectivity from LogisticsCompany
+	选择性介于【0,1】之间，值越大就越有必要建立索引
+
+  二。Like操作
+	从表中选取linkMan以‘成都’开始的记录
+	SELECT * from LogisticsCompany WHERE linkMan LIKE '成都%'
+
+        从表中选取partyName以‘物流结尾’的记录
+        SELECT * FROM LogisticsCompany WHERE partyName like '%物流'
+
+	从表中选取partyName包含‘物流’的记录
+        SELECT * FROM LogisticsCompany WHERE partyName like '%物流%'
+
+	从表中选取partyName不包含‘物流’的记录
+	SELECT * FROM LogisticsCompany WHERE partyName not like '%物流%'
+
+ 三。通配符
+
+	‘_’符号
+
+	选取表名字的第一个字符之后是‘胜’的记录：
+	
+	SELECT * FROM LogisticsCompany WHERE partyName like '_胜';
+  
+ 四。IN 操作符
+
+	根据一个logisticsCompanyId 的 list查询信息
+	SELECT * FROM LogisticsCompany WHERE logisticsCompanyId in ('1311','1321','1327')
+
+ 五。BETWEEN 操作符
+
+     between... and 选取介于两个值之间的数值范围，这些值可以是数值。文本或者日期
+
+     SELECT logisticsCompanyId， partyId，partyName from LogisticsCompany where partyId between 65080 AND 375365;
+     在使用mybatis的时候一般不使用between 一旦某个值空了，就会报错
+
+ 六。SQL Alias（别名）
+
+	SELECT
+	logisticsCompanyId as id,
+	partyName as '会员名',
+	partyId as '会员ID',
+	linkMan as '联系人',
+	organization as '组织'
+        FROM LogisticsCompany WHERE partyId BETWEEN 65080 AND 375365
+	 
+	联表查询的时候用的较多
+	SELECT a.partyName,a.partyId,a.logisticsCompanyId,b.applicationFormCode,b. STATUS,b.fromSource FROM LogisticsCompany AS a,
+	ApplicationForm AS b WHERE b.fromPartyId = a.partyId AND a.partyId = '375365' LIMIT 20; 
+
+  七。Join
+
+      INNER JOIN 内关联 返回的信息必须左右匹配 
+      SELECT l.partyName,l.partyId,l.logisticsCompanyId,a.fromSource,a.fromPartyId FROM LogisticsCompany as l INNER JOIN ApplicationForm as a ON a.fromPartyId=l.partyId LIMIT 100;
+  
+      LEFT JOIN 即使右表中没有匹配，也从左表中返回所有行，左边表中有信息，右边表中行为空
+      SELECT l.partyName,l.partyId,l.logisticsCompanyId, a.fromSource,a.fromPartyId FROM LogisticsCompany as l LEFT JOIN ApplicationForm as a ON a.fromPartyId=l.partyId LIMIT 100;
+
+      RIGHT JOIN 即使左表中没有匹配，也从右表中返回所有行
+      SELECT l.partyName,l.partyId,l.logisticsCompanyId, a.fromSource,a.fromPartyId FROM LogisticsCompany as l RIGHT JOIN ApplicationForm as a ON a.fromPartyId=l.partyId LIMIT 100;	
+	
+      MYSQL本身不支持FULL JOIN
+
+ 八。SQL UNION 操作符
+	
+     UNION 操作符用于合并两个或多个SELECT语句的结果集。
+	
+	UNION内部的SELECT语句必须拥有相同数量的列。列也必须拥有相似的数据类型，同时每条SELECT语句中的列的顺序必须相同。
+
+
+  九。SELECT INTO语句
+
+	该语句从一个表中选取数据，然后把数据插入另一个表中。
+	常用于创建表的备份复件或者用于对记录进行存档
+
+	语句：
+	SELECT *INTO Persons_backup FROM Persons
+
+   十。Create DataBase 建库
+	CREATE DATABASE database_name
+
+    十一。create Table 建表
+
+	CREATE TABLE 表名{
+		列名称1 数据类型，
+		列名称2 数据类型，
+		列名称3 数据类型，
+	}
+
+     十二。Constraints 约束
+
+	1.NOT NULL 约束强制不接受NULL值，约束字段必须包含值，如果不包含值就无法插入新纪录或者更新记录
+ 
+ 	2.UNIQUE约束唯一标识数据库中的每条记录，UNIQUE和PRIMARY KEY 约束均为列或者列集合提供了唯一的保证
+
+	3.PRIMARY KEY 拥有自动定义的UNIQUE约束
+
+	4.每个表中可以有多个UNIQUE约束，但是只能有一个PRIMARY KEY约束
+	
+	新增UNIQUE语句
+	ALERT table LogisticsCompany add CONSTRAINT uc_Party UNIQUE(partyName,partyId)
+
+	删除UNIQUE约束语句
+	ALERT table LogisticsCompany drop INDEX uc_Party 
+
+        5.PRIMARY KEY 约束
+	PRIMARY KEY 约束唯一标识数据库的记录。主键必须包含唯一的值，主键列不能包含NULL值，
+	每个表必须包含一个也只能有一个主键
+
+	新增主键语句
+	ALERT TABLE LogisticsCompany add PRIMARY KEY(logisticsCompanyId)
+	撤销PRIMARY KEY 约束
+	ALERT TABLE logisticsCompanyId DROP PRIMARY KEY
+      
+	6.FOREIGN KEY 约束(外键)
+	一个表中的FOREIGN KEY 指向另一个表中的PRIMARY KEY. 
+	FOREIGN KEY 约束用于预防破坏表之间的动作，也能预防非法数据插入外键列，它必须是它指向的那个表中的值之一
+	
+        创建外键SQL
+	ALERT TABLE ApplicantInfo ADD CONSTRAINT fk_appli FOREIGN KEY (applicationFormId) REFERENCES ApplicationForm(applicationFormId)
+	
+	撤销外键
+	ALERT TABLE ApplicantInfo DROP FOREIGN KEY fx_appli
+
+	7.CHECK 约束
+	check 约束用于限定列中的值的范围，如果对单个列定义CHECK约束，那么该列只允许特定的值
+
+	8.DEFAULT 约束
+	如果没有规定其他的值，那么会将默认值添加到所有的新纪录
+	
+	添加DEFAULT约束
+	ALTER TABLE student ALTER homeAddress SET DEFAULT '浙江'
+	撤销DEFAULT约束sql
+	ALERT TABLE Student ALERT homeAddress drop DEFAULT
+
+	8.DROP 语句
+
+	drop 删除index ，ALERT TABLE student drop INDEX stucentIndex
+	删除库 databases， DROP DATABASE your_db
+
+	删除table， DROP TABLE student
+	
+	删除字段， ALERT TABLE student DROP age
+		 
+	9.ALERT 语句
+	ALERT TABLE 语句用于在已有的表中添加，修改或者删除列
+	
+	添加字段， ALERT TABLE student add grades varchar(3) DEFAULT NULL COMMENT '分数'
+
+	删除字段, ALERT TABLE student drop grades
+
+	10.AUTO INCREMENT 字段
+	AUTO INCREMENT 字段约束，每次新增记录的时候，数据库会自动的创建主键字段的值
+
+	10.VIEW（视图）
+	视图是给予SQL语句的结果集的可视化的表
+	视图包含行和列，视图中的字段来自一个或多个数据库中的真实的表的字段。可以向视图添加
+	SQL函数，where以及join语句，我们可以提交数据，就像来自但一个表中
+
+  十三。Date 函数
+	now（）返回当前的日期和时间，CRUDATE() 返回当前的日期
+	CRUTIME 返回当前的时间，DATE() 提取日期或时间表达式的日期部分。
+	EXTRACT() 返回日期/时间按的单独部分
+	
+	DATE_FORMAT(now(),'%Y-%m-%d %h-%m-%s') 格式化为年月日，时分秒
+	DATE_FORMAT(now(),'%Y-%m-%d %h-%m') 格式化为年日月，时分
+	DATE_FORMAT(now(),'%Y-%m-%d') 格式化为年日月
+	DATE_FORMAT(now(),'%Y-%m-%d') 格式化为年
+
+  十四。NULL值
+	NULL值的处理方式与其他值不同，NULL用做未知的或不适用值的占位符。
+	
+	选择的时候必须用 IS NULL 和 IS NOT NULL 操作符
+	
+	SELECT * FROM student where sex is null ；
+
+ 十五。MySQL数据类型
+
+	在MySQL中主要有三种主要类型，文本，数字，和日期类型
+	
+ （1）Text类型
+	1.CHAR(size) 保存固定长度的字符串（可以包含字母,数字,以及特殊字符.在括号中置顶字符串的长度
+      最多255个字符
+	2.VARCHAR(size) 保存可变长度的字符串（可以包括字母，数字以及特殊字符,在括号中指定字符串的最大
+      长度，最多255个字符。
+	3.TINYTEXT 存放最大长度为255个字符的字符串。
+	4.TEXT 存放最大长度为65535个字符的字符串
+	5.BLOB 用于BLOBs(Binary Large Object).存放最多65535字节的数据
+	6.MediumBlob 最大长度为(2^24 -1)
+        7.LongTest 最大长度（2^32 -1）
+	
+	  varchar 数据库只是给该字段固定了一个最大值，然后系统会根据实际存储的数据来分配合适的存储空间。
+   ，相对于char字符数据而言，相比之下varchar占用了更少的存储空间，每一行使用固定空间的话，会造成
+   存储空间的消耗，一般来说varchar会节省磁盘空间，在这种情况下可以提升数据库的性能，同时也会带来副作用，
+   因为varchar是可变长度，数据更新会导致额外的工作，比如某个字段长度由10 变为 20，没有超过最长限制50，
+   这时候系统会进行额外的操作。
+
+          char类型的每次给字段分配固定长度的空间，即便存储的数据长度没有达到也是分配这个长度，这样会造成
+    一定的存储空间的浪费。
+
+       使用char的几种情况比如，手机号码 一般为11位，身份证号码 18位左右，人的名字长度也是有限的，造成的浪费
+    也不大，实际项目中，如果某给字段的字符长度较短是采用固定字符长度。
+
+	1.考虑长度是否有限，2.长度是否相近，
+	varchar比char多占用一个存储位置，使用varchar数据类型，会多出一个字节来存储长度信息，这个管理开销char
+	是没有的。   
+	
+       char 不用考虑碎片的困扰。varchar当字段长度发生改变时会产生碎片
+       注意char 存储的时候会自动把尾部的空格截断 varchar和text不会截断
+
+  （2）Number类型
+	1.TINYINT（size） 长度255， -128 至 127。 在括号中规定最大位数。
+	2.SMALLINT（size）长度65536， -32768到32767， 在括号中规定最大位数
+        3.MEDIUMINT（size） 长度16777215 在括号中规定最大位数。
+        4.INT（size）-2147483648 到 2147483647 长度4294967295  括号中规定最大位数
+        5.BIGINT（size），在括号中规定最大位数
+	6.FLOAT（size，d）带有浮动小数点的小数字，在括号中规定最大位数，在d参数中规定小数点右侧的最大位数
+	7.DOUBLE（size，d）带有浮动小数点的大数字。在括号中规定最大位数。在d参数规定小数点右侧的最大位数。
+	8.DECIMAL（size，d）作为字符串存储的DOUBLE类型，允许固定的小数点。
+
+   （3）Date类型：
+	
+        1.DATE()  日期，格式 YYYY-MM-DD 注释：支持范围是从"1000-01-01" 至"9999-12-31" 看了下navicate 的范围是
+          "1601-01-01"至"9999-12-31"
+	2.DATETIME() 	日期和时间的组合。格式	YYYY-MM-DD HH:MM:SS 	支持范围是从"1000-01-01: 00:00:00"至
+          "9999-12-31 23:59:59"  navicat 中显示的起时间是 "1601-01-01 00:00:01"
+	3.TIME() 时间 格式 HH:MM:SS 注释：支持的范围是从 "-838:59:59" 到"838:59:59"
+	4.YEAR() 两位或者四位格式的年。注释四位格式所允许的值：支持 1901到2155
+
+ 十六.SQL函数
+    
+     1.AVG函数返回数值列的平均值，NULL值不包括在计算中
+	语句：SELECT AVG(age) as average  FROM student， AVG可以计算以字符串存储的数字类型，或者纯数字类型int，
+	double，decimal等类型。
+	
+        筛选某一字段值大于平均值的sql
+	SELECT * from student where age >(SELECT AVG(age) as avgAge from student)
+
+     2.COUNT函数 函数返回置顶列的值的数目
+	sql语句
+	SELECT COUNT(DISTINCT invType) as count1,COUNT(DISTINCT HyfInvoice.hyfInvoiceId) as count2 
+        FROM HyfInvoice WHERE taxRate < (SELECT AVG(taxRate) FROM HyfInvoice)
+	
+	COUNT(DISTICT invType) 的效率应该比 COUNT(*)的效率要高。
+
+
+     3.FIRST()函数
+	FIRST()函数返回指定的字段张的第一个记录的值
+	Mysql本身不支持first 函数可以使用order by 来实现
+
+	SELECT * FROM student order by studentId ASC limit 1；
+
+     4.LAST()函数
+	LAST()函数返回指定字段中最后一个记录的值
+	mysql并不支持该函数可以用order by 来实现
+	SELECT * FROM student order by student DESC limit 1;
+
+      5.MAX()函数
+	MAX()函数返回一列中的最大值。NULL值不计算在内
+	SQL语句
+	SELECT MAX(money) FROM HyfInvoice
+
+	用order by 也是可以实现的
+        SELECT money from HyInvoice order by money DESC limit 1;
+	
+      6.MIN()函数
+	MIN()函数返回指定字段中最小的值，NULL值不计算在其中
+	SQL语句
+	SELECT MIN(money) FROM HyInvoice
+	用order by 也是可以实现的
+	SELECT money from HyInvoice order by ASC limit 1;
+		
+      7.SUM()函数
+	返回数值列的总数（总和）
+	sql语句
+	SELECT SUM(money) FROM HyfInvoice WHERE money <(SELECT AVG(money) FROM HyfInvoice)
+
+      8.GROUP BY 语句
+	GROUP BY 语句 用于结合合计函数，根据一个或多个列对结果集进行分组
+	SQL语句
+	SELECT SUM(money) as amount,sureMan , reg FROM HyfInvoice WHERE reg is not NULL and sureMan is NOT NULL GROUP BY reg
+	可以写多个GROUP by
+
+      9.HAVING 子句
+	
+	在SQL中增加HAVING 子句的原因是，where关键字无法与合计函数一起使用。
+	  SQL语句
+	SELECT reg, sureMan, SUM(money) as amount FROM HyfInvoice WHERE reg is NOT NULL and sureMan is not NULL GROUP BY reg HAVING amount >3000
+	如果没有having的话就得用sql嵌套
+	SELECT * FROM (SELECT reg, sureMan, SUM(money) as amount FROM HyfInvoice WHERE reg is NOT NULL and sureMan is not NULL GROUP BY reg) as a WHERE amount > 3000 
+
+      10.UCASE()函数
+	UCASE函数把字段的值转换为大写
+	SQL语句
+	SELECT UCASE(lastName) ,lastName from student
+
+      11.LCASE()函数
+	LCASE函数把字段的值转换成小写。
+	SELECT LCASE(lastName),lastName from student
+
+      12.MID()函数
+	MID()函数用于从文本字段中提取字符。
+	SQL语句
+	SELECT MIN(lastName,1,3) as alias FROM student
+	选取某一个字段从第一个字符到第三个字符的文本
+
+      13.LEN()函数
+	SELECT LEN(lastName) from student
+	mysql 并不支持这个语句	
+	
+      14.ROUND()函数
+	ROUND 函数用于把数值字段舍入为指定的小数位数	
+	SQL语句
+	SELECT ROUND（money，2） from count；保留两位小数
+	SELECT * FROM (SELECT reg, sureMan, ROUND(SUM(money),2) as amount FROM HyfInvoice WHERE reg is NOT NULL and sureMan is not NULL GROUP BY reg)as a WHERE amount > 3000 
+
+      15.NOW() 函数
+	NOW() 函数返回当前日期和时间。
+	SQL语句
+	SELECT NOW() FROM student	
+
+      16.FORMAT()函数
+	FORMAT函数用于对字段的显示进行格式化
+	SELECT lastName, firstName, FORMAT(birthday ,'YYYY-MM-DD') FROM student	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  

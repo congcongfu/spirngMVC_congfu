@@ -1,0 +1,8 @@
+	
+			Mybatis 和ibatis 对比学习
+	
+	一.设计的思想
+		个人思考了一下，觉得设计的理念是十分相近的，毕竟mybatis 是由ibatis发展而来的。
+
+
+{"Data":[{"total":"1","applicationFormIds":"112688","receiver":"gag2371","sumAmount":"1.234567890123456E13"},{"total":"1","applicationFormIds":"112844","receiver":"TQTQ","sumAmount":"23.0"},{"total":"1","applicationFormIds":"112718","receiver":"孙大炮","sumAmount":"323.0"},{"total":"1","applicationFormIds":"112838","receiver":"无奈的人生呀无奈","sumAmount":"2300.0"},{"total":"1","applicationFormIds":"112858","receiver":"明年今日","sumAmount":"1277.0"}],"Count":"5","totalSumAmount":"1.234567890515756E13","totalCount":"5"}

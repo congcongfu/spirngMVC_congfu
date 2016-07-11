@@ -1,0 +1,364 @@
+  
+   	一.工程的搭建
+   		1.先建一个web工程。引入相应的jar包，最关键的是mybatis 和mysql-connector-java 我用的是mybatis-3.1.1.jar 和
+   	mysql-connector-java-5.1.38-bin.jar
+	
+		2.然后建一个configration.xml文件，里面配置相应的dataSource
+	environments 用于配置数据源信息，包括连接池，事务池。
+
+	<environments type="JDBC">
+		<dataSource type="POOLED">
+			<property name="driver" value="com.mysql.jdbc.Driver"/>
+			<property name="url" value="jdbc:mysql://localhost/springboottest"/>
+			<property name="usernam" value="root"/>
+			<property name="password" value="123456">
+		</dataSource>
+	</environments>
+
+	mappers 里面配置对应的数据库映射文件
+	<mapper>
+		<mapper resource="com/mybatis/fc/Student.xml"/>
+		<mapper resource="com/mybatis/fc/Score.xml">
+	</mapper>
+
+	typeAliases 对应domain对象的别名 这个别名十分重要，用来映射具体类。
+	<typeAliases>
+		<typeAlias alias="Student" class="com.mybatis.fc.domain.Student"/>
+		<typeAlias alias="Score" class="com.mybatis.fc.domain.Score">
+	<typeAliases>
+         这个Configuration.xml是mybatis 用来建立sessionFactory用的，
+
+	     3.建立domain对象
+		public class Student{
+			private int id;
+			private String name;
+			private String birthday;
+			private int age;
+			setter/getter...
+		}
+
+	二.配置sqlMap xml文件
+		<mapper namespace="com.mybaits.fc.models.StudentMaper">
+			<select id="seletStudentById" parameterType="int" resultType="com.mybatis.fc.domain.Student">
+				SELECT id， name，age，DATE_FORMAT(%Y-%m-%d %d:%h:%s) from student where id=#{id}
+			</select>
+			<update></update>
+		</mapper>
+
+         然后就可以建一个Test 类来测试了
+
+	public class Test{
+		private static SqlSessioFactory sqlSessionFactory;
+		private static Reader reader;
+	
+		static{
+			reader = Resources.getResourceAsReader("Configuration.xml");
+			sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader)；
+
+			//也可以这样来 sqlSessionFactory = SqlSessionManager.newInstance(reader);
+		}
+
+		public static void main(String[] args){
+			SqlSession session = sqlSessionFactory.openSession();
+			try{
+				Student student = (student)session.selectOne("com.mybatis.fc.models.StudentMapper.selectStudentById",1);
+
+				//对应命名空间里的名字id
+			}finally{session.close()}
+		}
+	}
+
+	配置好上面的一切只是为了暴露一个SqlSessionFactory 供开发者使用 可以把上面的几行当做创建SqlSessionFactory的模板，这样就不一样那个重
+	复的编写相关的JDBC样板了
+	private satic SqlSessionFactory sqlSessionFactory ;
+	private static Reader reader;
+
+	public static SqlSession getSqlSession(){
+		reader = Resources.gerResourcerAsReader("Configuration.xml");
+		sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+		return sqlSessionFactory.openSession();
+	}
+	配置dao模板
+
+	public class BaseDao{
+		private static SqlSessionFactory sqlSessionFactory;
+		private static SqlSession session;
+		
+		public static SqlSession getSession(){
+			Reader reader = Resources.getResourceAsReader("Configuration.xml");
+			sqlSessionFactory = SqlSessionManager.newInstance(reader);
+			session = sqlSessionFactory.opensession();
+			return session;
+		}
+	}
+
+	然后每次实现dao的时候继承一下这个BaseDao
+	public StudentDaoImpl implements StudentDao extends BaseDao{
+		private SqlSession session = getSession();
+	}
+
+	三.接口方式编程
+	
+		1.如果采用这种方式，那么对应的xml文件中的命名空间必须指向这个接口比如
+		<mapper namespace="com.mybatis.fc.dao.ScoreDao">
+			<select id="seletcScoreByStudentId" paramterType="int" resultType="com.mybatis.fc.model.Socre">
+				SELECT id ,MathScore,EnglishScore,studentId from score where studentId=#{studentId}
+			</select>
+		</mapper>
+
+		2.写resultMap
+		<resultMap type="java.util.HashMap" id="resultScores">
+			<id column="id" property="id">
+			<result column="MathScore" property="MathScore">
+			<result colum="EnglishScore" property="EnglishScore">
+			<result column="studentId" property="studentId">
+		</resultMap> 
+		column 里面大小写敏感， property 里面大小写铭感
+		这里的type 可以是domain对象 也可以是Map  这样resultScores就可以当做一个返回的结果集来用了
+		
+		<select id="findSocres" resultMap="resultScores">
+			SELECT Id,EnglishScore,MathScore,StudentId from score limit 10;
+		</select>
+
+		in的写法 使用foreach的写法
+		<select id="selectStudents"  resultMap="resultMap">
+    			SELECT id, name,age,DATE_FORMAT(birthday,'%Y-%m-%d %h:%m:%s') as birthday FROM student WHERE id in 
+			<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+      			 	 #{item}
+    			</foreach>
+		</select>
+
+		3.如果是insert 或者是update操作那么就必须提交事务
+			session.commit();
+
+		<insert id="insert" parameterType="com.mybatis.fc.model.Score" useGeneratedKeys="true" keyProperty="id">
+			INSERT INTO score(EnglishScore,MathScore,studentId) values(#{EnglishScore},#{MathScore},#{studentId})
+		</insert>
+		用#{EnglishScore}的形式应用Student参数EnglishScore的属性，Mybatis将使用反射调用getEnglishScore()方法获取该值，这里面
+		是大小写敏感的。
+ 	
+		其实这样返回的并不是主键插入记录的主键id 返回的参数表明是否插入成功，而真正的id是在 score 里面 score.getId() 可以得到
+		这个和ibatis有区别
+		
+	四.Spring 集成Mybatis
+	
+		配置一个ApplicationContext.xml文件，在配置一个sqlMapping.xml文件
+	在ApplicationContext.xml中配置相应的数据源
+	
+		<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+			<property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+			<property name="url" value="jdbc:mysql://localhost:3306/springboottest"/>
+			<property name="usename" value="root"/>
+			<property name="password" value="123456"/>
+		</bean>	
+
+		配置sqlSessionFactory
+		<bean id="sqlSessionFactory class="org.mybatis.spring.SqlSessionFactoryBean">
+			<property name="dataSource" value="dataSource">
+			<property name="configLocation" value="com/mybatis/fc/config/sqlMapping.xml">
+ 		</bean>
+
+
+		sqlSessionFactory属性指定要用到的SqlSessionFactory实例
+		<bean id="userMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+			<property name="sqlSessionFactory" ref="sqlSessionFactory"/>
+			<property name="mapperInterface" value="com.mybatis.fc.dao.ScoreDao"/>
+		</bean>
+
+
+	一个普通的jdbc连接通常是这样的
+	1.先加载JDBC驱动程序
+	try{
+		Class.forName("com.mysql.jdbc.Driver");
+	}catch(ClassNotFoundException){
+		e.printStackTracd();
+	}
+	
+	2.然后创建数据库连接
+	String url = "jdbc:mysql://127.0.0.1:3306/springboottest"
+	String username = "root";
+	String password = "123456";
+	Connection con = null
+	try{
+		con = DriverManager.getConnection(url,username,password)
+	}catch(SQLException e){
+		e.printStackTrace();
+	}
+	3.创建一个Statement，获得java.sql.Statement实例，有三种类型
+		（1).执行静态SQL语句。常用Statement实例
+		（2).执行动态SQL语句。常用PreparedStatement实例
+		 (3).执行数据库存储过程。通常用CallableStatement实例
+
+	4.实例的方法有
+	Statement st = con.creatStatement();
+	PraparedStatment pst = con.praparedStatment(sql)
+
+	5.返回的结果集
+	Resultset rs = st.excuteQuery(sql);
+	或者 Resultset rs = pst.excuteQuery(sql);
+	String name = rs.getString("name");
+	或者 String name = rs.getString(1);//表示查询出子表对应的列，这个效率高
+
+	6、关闭JDBC对象，释放资源，关闭资源的顺序和实例的顺序相反
+	if(rs != null){
+	   try{
+	   	rs.close();    //关闭结果集
+	   }catch(SQLException e){
+	   	e.printStackTrace()
+	   }
+	
+	if（st != null）{
+		try{
+			st.close();    //关闭声明
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+	}
+	
+	if(connection != null){
+		try{
+			connection.close();
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+	}
+	}
+
+	使用Statement 和 Preparedment 对比
+	Statement用来执行静态sql，一次性执行sql，PreparedStatement用来执行动态sql。易于维护
+	
+	PreparedStatement 是预编译，对于批量处理可以提高运行的效率，对于整个数据库，只要是预编译后的语法和缓存中配置，下次使用
+	就可以不用编译而直接执行
+
+	Statement每次执行sql时都需要编译，而PreparedStatement 只需编译一次
+
+	最为重要的是使用PreparedStatement 提高了使用的安全性。
+	比如一些sql注入  or "1"="1" 这样权限设置都失效了
+
+	更为恶劣的是 传进来的参数是这样的   "; DROOP table student"
+
+ 	
+	五.mybatis中的连接池配置
+	
+		PoolDataSource类,
+		参数
+	1. poolMaximumActiveConnectios 默认为10，指在任意时间都可以存在额活动（也就是正在使用的连接数量）
+	
+	2.poolMaximumIdleConnections 默认值5，任意时间可能存在的空闲连接数
+		
+	3.poolMaximumCheckoutTime 默认20000毫秒 在强制返回之前，池中被检出（checked out）时间
+	
+	4.poolTimeToWait 默认值20000毫秒 ，这是一个低层设置，如果获得连接花费的相当长的时间，他会给连接池打印日志并重新尝试
+	一个连接的机会（避免在误配置的情况下一直安静的失败）
+
+
+       六.Mybatis 中几个比较重要的包
+		1.session 包
+		这个包提供了 SqlSessionFactory .SqlSession 等几个接口层的核心类。SqlSession来提供对数据库的操作的API
+
+		2.Executor包
+		这个包提供的类是mybatis的核心，它完成了数据库操作的完整过程。包括sql的执行，事务的提交/回滚，延迟加载，关闭等
+
+		3.type 包
+		这个包提供了数据类型转换的API
+
+		4.logging 包
+		提供了一套logging接口，开发者可以根据使用的日志框架  来分别提供适配器。  Mybatis统一提供了trace，debug，warn，error
+		四个级别。
+
+		5.IO包
+
+		主要功能包括提供读取资源文件的API.封装Mybaits所需要的ClassLoader和加载顺序
+
+		6.reflection
+		在参数处理，结果映射中大量使用反射，频繁的读取Class元数据.反射调用get/set.
+		
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	    

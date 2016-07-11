@@ -1,0 +1,92 @@
+
+
+		Hadoop理论知识的学习
+	
+	1.Namenode,Secondary Namenode, Backup Namenode
+
+	Namenode 存储了HDFS文件系统的一些元数据，包括文件的存储结构，对文件的操作，如果元数据损坏了，存储在datanode中的数据都读不出来了，
+	如果Namenode的元数据过大，集群启动的就十分的慢了，一般不是文件量十分大的小文件系统，文件一般是比较大的，避免Namenode的元数据过大
+	Namenode 元数据主要就是两个文件，edits和fsimage。fsimage是HDFS的最新状态文件，edits是字fsimage创建后的namespace操作记录。Namenode
+	每次启动时候，都需要合并两个文件按照edits的记录把fsimage文件更新到最新，如果集群很大的话，那么edits就会十分的大，下次重启就会十分慢
+
+	使用secondary Namenod 定期从Namenode上获取元数据，要获取元数据的时候，就通知Namenode暂停写edits，并发合并好的fsimage发送个Namenode
+	Namenode使用新的fsimage覆盖老的fsimage文件，并且删除edits文件，重新建一个edits文件，这样就避免了esits日志无限增长
+
+	新的版本的hadoop 已经放弃了Secondary Namenode 使用Backup Node在内存中维护一份从Namenode同步过来的fsimage，同时它从Namenode接收edits文件
+	，并把它们持久化到硬盘中， Backup Node 把接收到的edits文件和从内存中获取的fsimage文件进行合并，创建一份数据备份。这样效率就比较高了，不需要下载
+	而是直接从内存中获取元数据并持久化到磁盘中然后合并
+
+	2.Map/Reduce
+	
+	一个Map/Reduce作业其实是一个（job）通常把输入的数据集切分为若干独立的数据块，由map任务（task)，以完全并行的方式处理他们，对map的输出先进行排序，然后把
+	结果输入给reduce任务，通常作业的输入和输出都会被存储在文件系统中
+	通常，Map/Reduce 和分布式文件系统是运行在一组相同的节点上，计算节点和存储节点通常在一起。
+	
+	不同的slave 服务器执行task 而master 负责调度这些任务。
+	Map/Reduce框架运转在<key,value>键值对上，也就是说 把作业的输入看为是一组<key, value>键值对，reduce 也同样产生一组<key,value>键值对作为作业输出，这两组
+	键值对的类型可能不同。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

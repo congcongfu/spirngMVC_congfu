@@ -1,0 +1,185 @@
+
+ 一.接口和抽象类的区别
+	interface 和 abstract class 的区别
+	
+	在我的理解中interface 更像一个协议约定着实现类的方法。接口里面的方法都是未实现的，只是规定
+    了方法名，入参和出参。里面的方法必须以public关键字来修饰，如果有成员变量的话，必须以static final
+    来修饰。如果某个类实现了接口那么必须实现接口中的所有方法。接口是可以允许new的，我的理解是相当于实
+    例化了一个对象，该对象实现了接口，专业的叫法是匿名内部类，比价经典的例子是new Runnable（）{}
+
+         abstract class 类 类名用abstrac 关键字修饰，它不能被实例对象化，只能通过继承来被实例，里面可以
+    有成员变量，可以有构造器，子类继承了父类的所有属性和方法，如果抽象类中有个类是abstract修饰的，那么子类
+    必须重写这个方法。abstric 不能以private，final等关键字修饰
+    
+         一个类只能继承一个抽象接口，但可以实现多个接口
+
+  二.Java HashMap
+	核心思想是hashing，以key-value的形式来存储数据，通过散列来实现数据的存储，使用String,和int类型来做key
+     比较安全。
+	Java1.7
+	hashMap是基于数组实现的，数组长度默认的大小为16.
+      1.put()方法：
+		HashMap默认分成16个桶或者bucket，计算存入key的值hash值，然后和桶尺寸减一的值按位与，得到该值在
+	table存储的下标index，JDK1.7中，每个桶是一个以key-value，hash存储数据的链表结构，先遍历链表，如果存在相同的key，
+	且hash值相同那么则覆盖原来的值，返回原来的值，不存在相同key的话就把key—value加入链表的尾部当中，这样很好的解决
+	了hash碰撞的问题。
+
+       2.get()方法：
+	    先计算key的hash值，然后这个hash值和（tableSize -1）按位与得到这个key对应的下标，得到一个列表，然后遍历
+	这个链表再判断hash值和key与链表中的key和hash是否完全匹配，完全匹配的话，返回找到的值，否则返回null；
+	
+       3.remove()方法：
+	    先计算key的hash值，然后和上面相同的方法，得到该key在table存的下标，得到整个链表，然后遍历整个链表，如果key和
+	hash值都吻合的话，将下一个节点覆盖这个节点就好了，返回被删除的元素，不存在则返回null；
+
+	Java1.8的话也是基于数组来实现的，但是，每个下标存储数据的数据结构有区别，如果每个链表中的元素的个数多余8个的话，会
+	生成一个红黑树，这样可以提高查询的效率。链表查询的操作复杂度是O(N),红黑树的查询复杂度是O(log2N),map中的数据多的话，
+	生成树的优势明显提高。
+
+
+	三.单列的写法
+	 	1.饱汉式：
+	
+	public Class Singleton{
+		public final static Singleton instance = new Singleton();
+		
+		private Singleton(){};
+		public Singleton getInstance(){
+			return instance;
+		}
+	}
+	这种方式使用final,static 关键字修饰，在第一次加载类到内存时就会初始化，所以是线程安全的。但这种方法不完美，需要配置参数
+	的话，就需要在getInstance()方法前面调用某个方法设置参数。
+
+		2.双重锁检测式： 线程安全，可以延迟加载，调用效率高
+		
+	public Class Singleton{
+		
+		private volatile static Singleton instance;
+		private Singleton(){};
+		
+		public static Singleton getInstance(){
+			if(instance == null){
+				synchronized(Singleton.class){
+					if(instance == null)
+						instance = new Singleton();
+				}
+			}
+		}		
+	}
+	使用了同步块加锁的方法，会有两次检查 instance == null 一次是在同步块之外，一次是在同步块内。之所以要检查两次，是因为可能有多个线程
+	一起进入同步代码外的if判断，如果不多次检查的话会生成多个实例
+
+	3.静态内部类  线程安全，效率高，可以延迟加载
+	public class Student{
+		private Student(){};
+
+		private static class Singleton(){
+			private final static Student INSTANCE= new Student();
+		}
+
+		public Studnet getInstance(){
+			return Singleton.INSATANCE;
+		}
+	}
+
+	4.枚举的方法：线程安全，调用效率高，不能延迟加载。
+	
+	public enum Student implements Serializable{
+		INSTANCE;
+		private String name;
+		private String sex;
+
+		public void setName(String name){ this.name = name;}
+		public String getName(){return name;}
+
+		public void setSex(String sex){ this.sex = sex;}
+		public String getSex(){ return sex;}
+	
+		public String toString(){
+			return "{ name="+name+" ,sex="+sex+" }";
+		}
+	}
+	一个枚举在经过编译器编译后，就变成了一个抽象类，继承了java.lang.Enum .而枚举定义的枚举常量。就变成了相应的public static final 属性
+	这样内存中的实例对象就只存在一份了。
+	
+	枚举本质上是通过普通的类来实现的，只是通过编译器为我们进行了处理，每个枚举类型都继承java.lang.Enum,并自动添加了values和valueOf方法
+	每个枚举常量是一个静态常量字段，使用内部类实现，内部类继承了枚举类。所以每个枚举常量都通过静态代码块来进行初始化。在类加载期间就初始化。
+	另外把clone，readObject，writeObject这三个方法定义为final，同时实现抛出相应的异常。这样保证了每个枚举类型以及枚举常量都是不可变的。
+
+	单列实现的要点：
+	1.隐藏构造器：使用private 修饰
+
+	2.返回的实例 是static singleton 实例
+	
+	3.暴露实例的获取方法： 使用public 修饰
+
+	四.synchronized 和lock的用法区别
+	
+		synchronized:在需要同步的对象中加入这个控制，可以加在方法上，也可以加在特定的代码块中，锁的是对象。
+		lock：需要制定起始位置和终止位置，一般使用ReentrantLock 类来作为锁，多个线程必须使用一个ReetrantLock类作为对象才能保证锁的生效，
+		 	在加锁和解锁的地方需要通过lock() 和unlock()显示的指出，一般会在finally中写unlock()防止锁死。
+
+		性能的区别：
+			synchronized是托管给JVM执行的，而lock是java写的控制所的代码。synchronized 效能较低，使用Lock对象性能要高一些。synchronized
+		采用的是cpu的你悲观锁机制，程序是独占锁的，其他线程只能依靠阻塞来等待线程释放锁。当有很多线程竞争锁的时候，会导致效率比较低下。
+
+			lock是使用乐观锁方式的，每次都假设没有冲突，如果失败了就重试，一直到成功为止，乐观锁的实现机制是（Compare and Swap）
+
+			使用synchronized 的话 如果一个线程获取到对象锁之后一直没有释放，那么另外一个线程就会一直等待，即便中断了也还是在等待，直到获取到对象锁
+
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
