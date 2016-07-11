@@ -1,0 +1,937 @@
+
+   一.Bean的定义
+     bean是一个被实例化，组装，并通过Spring IoC 容器所管理的对象，这些bean是由用容器提供的配置元数据创建的，例如在
+   XML的表单中定义的。
+
+     构成每个bean定义的属性
+     1.class  这个属性是强制的，并且指定用来创建bean的bean类。
+
+     2.name 这个属性指定唯一的bean标识符。在基于XML的配置元数据中，你可以使用ID或name属性来指定bean的标识符（尝试过可以）
+
+     3.scope   这个属性指定特定bean定义创建的对象的作用域。
+
+     4.constructor-arg  它是用来注入依赖关系的。构造器
+
+     5.properties   它是用来注入依赖关系的。
+
+     6.autowiring mode  用来注入依赖关系。自动装载
+
+     7.lazy-initialization mode  延迟初始化的bean告诉IoC容器在它第一期请求的时候，而不是启动的时候创建一个bean实例
+
+     8.initialization方法   在bean的所有必需的属性被容器设置之后，调用回调方法。
+
+     9.destruction 方法     当包含bean的容器被销毁时，使用回调方法。
+
+  二.Spring配置元数据
+     Spring IoC 容器完全由实际编写的配置元数据的格式解耦，主要有以下三个重要的三种配置元数据提供给Spring容器
+
+     1.基于XML的配置文件
+     2.基于注解的配置
+     3.基于Java的配置
+
+  三.Bean 的作用域
+     
+     当定义一个bean时吗，必须声明该bean的作用域的选项。例如为了强制Spring在每次需要时都产生一个新的bean实例，则声明bean
+     的作用域的属性为prototype。 如果想要每次需要时都返回同一个bean实例，应该声明bean的作用域为singleton。Spring框架支持
+     以下五种作用域，如果用web-aware ApplicationContext 时，当中有三个是可用的
+
+    1.singleton    该作用域将bean的定义的限制在每一个Spring IoC 容器中的一个单一实例。
+
+    2.prototype     该作用域将bean的定义限制为任意数量的对象实例。
+
+    3.request      该作用域将bean的定义限制在HTTP请求，只在web-aware Spring ApplicationContext的上下文中有效。
+
+    4.session      该作用域将bean的定义限制为HTTP会话，只在web-aware Spring ApplicationContext的上下文有效
+
+    5.global-session  该作用域将bean的定义限制为全局HTTP会话，只在web-aware Spring ApplicationContext 的上下文有效
+
+   （1）singleton作用域
+     如果作用域设置为singleton，那么Spring IoC 容器刚好创建一个bean定义的对象实例，该单一实例将存储在这种单列bean的
+     告诉缓存中，以及针对bean的所有后续的请求和引用返回缓存对象。
+	默认作用域是始终是singleton，但是当仅仅需要bean的一个实例时，你可以在bean的配置文件中设置作用域的属性为singleton
+     
+    (2) prototype作用域
+	如果作用域设置为prototype，那么每次特定的bean发出请求是Spring IoC容器就创建对象新的Bean实例，一般来说，满状态的
+     bean使用prototype 作用域和没有状态的bean使用singleton作用域。
+	每次都会实例一个新的bean实例
+
+ 
+  四.Bean 的生命周期
+     当一个bean被实例化是，它可能需要执行一些初始化使它转换成可用状态。同样，当bean不再需要，并且从容器中移除时，可能需要
+   做一些清除工作。
+     尽管还有一些在Bean实例化和销毁之间发生活动。它们在bean的初始化和销毁的时候是必需的。
+     实例和销毁一个bean，要声明带有 init-method 和destroy-method参数。 init-method属性指定一个方法，在实例化bean时，立即调用
+   这个方法。同理，destroy-method指定一个方法，只有从容器中移除bean，才调用。
+     配了init-method 在Bean 创建的时候就会调用初始化方法。
+
+  五.Bean后置处理器。
+
+      BeanPostProcessor接口定义回调方法，可以实现该方法来提供自己的实例化逻辑，依赖解析逻辑等，也可以在Spring容器中插入一个
+  或多个BeanPostProcessor的实现来实例化，配置和一个初始化一个bean之后实现一些自定义的回调方法。
+      可以配置多个BeanPostProcessor接口，通过设置BeanPostProcessor实现的Ordered接口提供的order属性来控制这些BeanPostProcessor
+  接口的执行顺序。
+      BeanPostProcessor可以对bean实例进行操作，意味着Spring IoC容器实例化一个bean实例，然后BeanPostProcessor接口进行它们的工作
+  ApplicationContext 会自动检测BeanPostProcessor接口的实现定义的bean，注册这些bean为后置处理器，然后通过在容器中创建bean，在适当
+  的时候调用它。
+
+  六.Bean 定义继承
+     bean中 定义可以包含很多的配置信息，包括构造函数的参数，属性值，容器的具体信息例如初始化方法，静态工厂方法。
+     子bean的定义继承父定义的配置数据。自定义可以根据需要重写一些值，或者添加其他值。
+     Spring Bean定义的继承与Java类的继承无关，但是继承的概念是一样的，可以定义一个父bean的定义模块作为模板和其他子bean就可以从父
+    
+     bean中继承所需的配置。用XML配置元数据时，通过使用父属性，指定父bean作为该属性的值来表明子bean。
+ 
+     子bean如果不配置任何参数，就会继承父类的所有属性
+
+    类似的可以创建一个Bean 定义模板，可以被其他子bean定义使用  该模板bean 使用关键字abstract="true" 来描述，定义为抽象来充当模板作用
+
+
+  七.依赖注入：
+	在编写一个复杂的Java程序时，应用程序类应该尽可能独立于其他Java类来增加类的重用，依赖注入有助于把这些类粘合在一起，保持类与类之间
+    的独立。
+   
+     1.基于构造函数的依赖注入。
+       当容器调用带有一组参数类的类构造函数时，基于构造函数的DI就完成了，其中每个参数代表一个类对其他类的依赖
+       使用XML<constructor-arg ref="XX">
+       需要注入类的需要有个构造器来接受被注入的类，否则报错。    
+
+       如果需要注入多个类的话，XML中配置的bean的数量，必须与构造器中的数量一致，顺序倒是无所谓。
+    
+       如果用<constructor-arg> 来传递参数的话
+       可以这样 <consturctor-arg type="int" value="59">,<constructor-arg type="String" value="Chinese">
+
+       或者用下标的方式来表示 index 对应构造器中的参数的位置 index 必须从0开始
+
+       比如 <constructor-arg index="0" value="Chinese"> 
+            <constructor-arg index="1" value="59">
+
+       向一个对象传递引用使用 ref 传递参数直接使用value就好
+
+     2.setter方法注入
+
+	<property name="name" value="Frank"></property>
+
+     3.静态工厂方法注入。
+	通过调用静态工厂方法来获取自己需要的对象。
+	使用静态工厂创建实例时必须提供工厂类和生产实例的静态工厂方法。通过静态工产方法创建实例时需要对Spring配置文件做以下修改
+	
+	Class属性不再是Bean实例的实现类，factory-method 里面对应的方法是静态类方法生成实例， 而是工产类的bean例如
+	<bean id="man" class="com.tourtusion.fc.BeanFactory" factory-method="getAnimal">
+		<constructor-arg value="man">
+		<property name="msg" value="2"></property>
+	</bean>
+	<constructor-arg> 里面的参数是传给工产类的
+
+     4.实例工厂方法注入。
+
+	实例工厂方法与静态工厂方法只有一点不同：调用静态工厂方法只需要使用工厂类即可，调用实例工厂方法，必须使用工厂实例。所以在spring
+	配置上也只有一点区别：配置静态工厂方法指定静态工厂类，配置实例工厂方法，指定工厂实例里返回实例类的方法不是static关键字修饰的
+	
+	然后再bean id 对应的 factory-method 对应返回实例的方法 
+       <bean id="studentFactory" class="com.tutorialspoint.fc.StudentFactory"></bean>
+
+	<bean id="midStudent" factory-bean="studentFactory" factory-method="getMidStudent">
+		<property name="lessons">
+			<list>
+				<value>PE</value>
+				<value>English</value>
+				<value>Physics</value>
+			</list>
+		</property>
+	</bean>
+
+ 	public Student getMidStudent(){
+		return new MidStudent();
+	}
+
+	这个方法和基于Java 的配置有些类似 @Configuration @Bean
+
+
+   八.注入内部 Beans  
+       Java 内部类实在其他类的范围内被定义的，同理， inner beans 是在其他bean的范围内定义的bean，因此，在元素内
+     元素被称为内部bean，这个和依赖注入很像，只不过把这个bean 放到bean的内部来了
+
+
+      具体的写法为
+      <bean  id="aa" class="XXX">
+		<property name="dd">
+			<bean id="dd" class="XXY>
+				<property name="fuck" value=""/>....
+			</bean>
+		</property>
+      </bean>
+
+     也可以这样
+	<bean id="aa" class="dd">
+		<property name="fuck" ref="fuck" >
+	</bean>
+	<bean id="fuck" class="gg">
+	 	<property name="fuck" value=""/>....
+	</bean>
+
+       其实这两种方法实现的功能是类似的，单创建bean的先后顺序是不一样的，内部bean必须要包含它的bean创建的时候才实例化，
+     第二种方法只不过是吧外部的bean引入当内部中，有点注入的意思和<constructor-arg ref>是一样的
+     
+  九.注入集合
+
+    传递多个值，如Java Collection类型List，Set，Map，和Properties。Spring提供了四种类型的集合配置元素。
+
+    （1） <list> 有助于连线，注入一列值，允许重复。
+    （2） <set> 有助于连线一组值，不允许重复。
+    （3） <map> 用来注入key-value的集合，名称和值可以是任意类型。
+    （4） <props> 它可以用来注入key-value的集合， 其中名称和值都是字符串类型。
+
+    可以用来连接任何 java.util.Collection 的实现和数组。
+     XML中配置如下
+     1.<list> 对应List
+	<property name="lessons">
+		<list>
+		    <value>English</value>
+		    <value>Chinese</value>
+	  	    <value>Math</value>
+		</list>
+	</property>
+	注意 name必须于对用类中的变量名一致。
+      2.<map>对应Map
+	<peroperty name="lessonMap">
+		<map>
+			<entry key="1" value="Chinese">
+			<entry key="2" value="English">
+			<entry key="3" value="Math">
+		</map>
+	</property>
+	name必须与类中变量名一致
+
+
+       3.<set> 对应Set
+	<property name="lessonSet">
+		<set>
+			<value>Chiese</value>
+			<value>English</value>
+			<value>Math</value>
+		</set>
+	</property>
+	
+	4.<pros> 对用Properties
+
+	<property name="lessonProperty">
+		<pros>
+			<prop key="one">Chinese</prop>
+			<prop key="two">English</prop>
+			<prop key="three"></prop>
+		</pros>
+  	<property>
+		
+	注入null和空字符串。
+	
+          传递空字符串：<property name="sex" value="></property>
+	  传递null ：<property name="sex"><null/></property>
+	如果类中是数字类型的不允许注入null 和空字符串，会报错。
+
+   十.Bean 的自动装配
+
+	自动装载模式，可以指示Spring容器来为使用自动装配进行依赖注入，可以使用autowire属性为一个bean定义指定自动装载模式
+       1. 自动装配 'byName'
+	   这种模式由属性名称指定自动装配。Spring容器看做beans，在XML配置文件中beans的auto-wire属性设置成byName。然后，
+       它尝试将它的属性与配置文件中定义为相同名称的beans进行匹配和连接，如果找到匹配项，它将注入这些beans，否则，它将抛出异常
+
+       使用byName 在XML中配置。
+	如 ：
+	<bean id="primaryStudent" class="XXX" autowire="byName">
+		<property name="name" value="Eric"></property>
+	</bean>
+	<bean id="study" class="YYY">
+		<property name="lesson1" value="English"></property>
+		<property name="lesson2" value="Chinese"></property>
+	</bean>
+	如果实例bean primaryStudent的时候 会自动装载 bean study ，尝试将类PrimaryStudent类中的Study的属性与配置文件中相同的
+       的beans进行配置和连接，找到了就注入beans，最关键的是对应的Set方法，set方法的命名必须的是（set+beanName）如 setstudy，
+      也可以是满足驼峰规则的setStudy，否则会报错。byName其实是去找id或name对应的bean
+
+       2.'byType'自动装配
+	  在XML配置文件中beans的autowire属性设置为byType。如果，它的type恰巧与配置文件中beans名称中的一个相匹配，它将尝试匹配和
+	连接它的属性，如果找到匹配项，将会注入这些beans，否则，抛出异常
+	  说的直白一些byType的功能就是去bean class里面找对应的 类属性， 找到就注入。和id或name没有关系，无论id或name怎么命名都只
+        找对应的class
+	
+	<bean id="primaryStudent" class="XXX" autowire="byType">
+		<property name="name" value="Eric"></property>
+	</bean>
+	<bean id="study22" class="YYY">
+		<property name="lesson1" value="English"></property>
+		<property name="lesson2" value="Chinese"></property>
+	</bean>
+
+
+       3.构造函数自动配置。
+	   这种模式与byType非常相似，但它应用与构造器参数。在XML配置文件中的 autowire属性设置为constructor。然后，会尝试把它的构造
+	
+	函数的参数与配置文件中的beans 名称中的一个进行匹配，找到匹配项，就会注入这些bean，否则抛出异常。
+	
+	   这个和<constructor-arg ref=""> 有些类似 配置了autowire="constructor" 之后 可以注入bean 或者参数
+           比如
+		<constructor-arg type="String" value="Eric"></constructor-arg>
+   		<constructor-arg type="String" value="female"></constructor-arg>
+   		<constructor-arg type="int" value="19"></constructor-arg>
+
+          构造器注入的bean是根据class对应的类名来注入的，而不是根据id或者name
+
+ 	4.no这是Spring框架的默认设置，在改设置下自动装配是关闭的，开发者需要自行在bean定义中用标签明确设置依赖关系。
+
+	
+
+   十一.注解的配置。
+
+	<beans xmlns="http://www.springframework.org/schema/beans"
+    		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    		xmlns:context="http://www.springframework.org/schema/context"
+   		 xsi:schemaLocation="http://www.springframework.org/schema/beans
+    		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+   		 http://www.springframework.org/schema/context
+   		 http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+   
+  		<context:annotation-config/>
+	</bean>
+	需要配置一下<context:annotation-config>
+	
+	1.@Required 注释
+	  @Required 注释应用于bean属性的setter方法，表明受影响的bean属性在配置时必须放在XML配置文件中，否则容器抛出一个
+	BeanInitializationException异常。
+	 	
+ 	 在类中set方法之前都加一个@Required ，只要标注了，bean中必须有一个对用的属性值与之匹配，
+     否则会抛出异常如：org.springframework.beans.factory.BeanInitializationException: Property 'sex' is required for bean
+
+	2.@Autowired 注释
+	  @Autowired注释可以再setter方法中被用于自动连接bean，就像@Autowired注释，容器，一个属性或者任意命名的可能带有多个
+	参数的方法。
+	   可以再XML文件中的setter方法中使用@Autowired注释来消除元素。当Spring遇到一个在Setter方法中使用的@Autowired注释，
+	它会在方法中视图执行byType自动连接。
+		使用@Autowired 可以加在setter方法前，也可以加在属性bean之前，也可以加在构造方法之前,容器就会根据byType自动注入
+   	对应的bean 例如：
+		@Autowired
+		private Study study;或者
+
+		@Autowired
+		public void setStudy(Study study){this.study = study;}  
+
+		@Autowired
+		public PrimaryStudent(Study study){ this.study=study;}  构造器也会自动注入
+
+	@Autowired 的(required=false)选项
+        默认情况下，@Autowired注释意味着依赖是必需的，它类似于@Requred注释 然而，你也可以使用@Autowired
+	的(required=false)的选项关闭默认行为。即便参数不传也不会报错
+	(required=true)表示参数必需传，否则报错。
+
+	3.@Qualifier 注释
+	 	当创建多个具有相同类型的bean时，并且想要用一个属性只为它们其中一个进行装配，这种情况下，可以使用@Qualifier注释
+	  和@Autowired注释通过指定哪一个真正的bean将会被用来装配来消除混乱。
+	  比如下面情况 XML配置了多个class属性相同的bean，通过byType注入会报错。
+
+	<bean id="study1" class="com.tutorialspoint.Study">
+   			<property name="lesson1" value="Math"></property>
+   			<property name="lesson2" value="English"></property>
+   			<property name="lesson3" value="Chinese"></property>
+   	</bean>
+	<bean id="study2" class="com.tutorialspoint.Study">
+   			<property name="lesson1" value="Physics"></property>
+   			<property name="lesson2" value="History"></property>
+   			<property name="lesson3" value="Chinese"></property>
+   	</bean>
+
+	那么实际类中可以这样来消除混乱
+	@Qualifier("study2")
+	@Autowired
+	private Study study; 那么注入的时候就会选择bean id="study2" 的bean来注入
+
+	4.Spring JSR-250 注释
+
+           （1） @PostConstruct 和PreDestroy  注释
+		@PostConstruct 相当于 XML中的 init-method， @PreDestroy 相当于destroy-method
+
+	   （2）@Resource注释
+		@Resource 注释使用一个'name'属性，该属性以一个bean名称的形式被注入。遵从byName 自动连接
+		如果name缺省，那么会根据byType找到默认一个bean 若有多个class相同的bean会出现混乱。
+
+
+   十二.基于Java 的配置。
+	1.@Configuration 和@Bean注解
+	带有@Configuration的注解类表示这个类可以使用Spring IoC容器作为bean定义的来源，@Bean注解告诉Spring，一个带有@Bean
+	的注解方法进返回一个对象，该对象应该被注册为Spring 应用程序上下文中的bean，最简单可行的@Configuration类
+	
+	带有@Bean注解的方法名称作为bean 的ID ，它创建并返回实际的bean。配置的类可以声明多个@Bean。   
+	注入Bean的依赖性，当@Bean依赖对方时，只要有一个bean方法调用另一个
+	如下代码
+
+	@Configuration
+	public class MyConfig(){
+		@Bean
+		public Study study(){return new study();}
+		
+		@Bean
+		public Student student(){ return new Student()}
+	}
+
+	ApplicationContext context = new AnnotationConfigApplicationContext(MyConfig.class);
+	Study study = (Study) context.getBean(Study.Class);
+	Student student = (Student)context.getBean(Student.Class);
+
+	2.@Import 注解
+	  @Import注释允许从另一个配置类中加载@Bean定义。如果一个bean中需要注入另一个bean 那么对应的类需要一个构造器放入另一个类
+	同时配置类中也要有相对应的方法。
+	
+	比如：
+	@Configuration
+	@Import(MyConfig.class)
+	public class MyConfigA(){
+		@Bean
+		public Man man(fuck()){return new Man();}
+
+		@Bean
+		public Fuck fuck(){return new Fuck();}
+	}
+
+	这样MyConfigA这个配置类获取到MyConfig 类的所有属性。
+
+	3.bean 的生命周期。
+	@Bean 支持指定的任意初始化和销毁的回调方法，就像在bean元素中Sprign的XML的初始化和销毁方法
+	只需要在配置类中配置一下就好
+	@Bean(initMethod="init",destroyMethod="destroy")
+	若方法不对应会报错。
+
+	3.bean 的作用域，默认为singleton
+	@Bean
+ 	@Scope(prototype)
+	public Student student(){return new Student();}
+	表示每次注入的都是一个新的bean
+
+   十三.构造方法注入和设置注入的区别
+	
+	1.在设置注入方法支持大部分的依赖注入，如果仅仅需要注入int，Strng，和long型的变量，我们不需要用设值的方法注入，对于基本类型，如果
+	我们没有注入的话，可以为基本类型设置默认值。在构造方法注入不支持大部分的依赖注入，因为在调用构造方法中必须传入正确的构造参数否则报错
+
+        2.设值注入不会重写构造方法的值，如果对同一变量同时使用构造方法注入有使用了设置方法注入的话，那么构造方法将不能覆盖由设值的方法注入的值
+	使用构造方法bean在对象创建是就被调用了。
+	
+	3.设值注入时有可能不能保证某种依赖是否已经注入，也就是说这时对象的依赖关系可能是不完整的，构造注入则不允许的依赖关系不完整的对象。
+
+	4.在设值注入时如果对象A和对象B互相依赖.会有问题 ，在XML 中bean id 在前面比如bean A  在bean B 前面，B对象可以注入A中，A对象注入到B中会会注入
+	一个null值。
+	
+   十四.Spring 中的事件处理
+
+	ApplicationContext负责管理beans的完整生命周期，当加载beans时，ApplicationContext发布某些类型的事件，例如，当上下文启动时，
+    ContextStartedEvent发布，当上下文停止时，ContextStoppedEvent发布。
+	通过ApplicationEvent类和ApplicationListener接口来提供在ApplicationContext中处理事件。如果一个bean实现ApplicationListener，那么
+    每次ApplicationEvent被发布到ApplicationContext上，那个bean会被通知。
+
+	1.上下文更新事件（ContextRefreshedEvent）:
+		该事件会在ApplicationContext被初始化或者更新时发布，也可以在调用ConfigurableApplicationContext接口中的Refresh()方法时被触发。
+	
+	2.上下文开始事件（ContextStartedEvent）：
+		当容器调用ConfigurableApplicationContext接口中Start()方法开始/重新开始容器时触发该事件。
+	  为了监听上下文事件，一个bean应该实现只有一个方法的onApplicatonEvent() 的 ApplicationListener接口如：
+	public class FStartEventHandler implements ApplicationListener<ContextStartedEvent>{
+		
+		@Override
+		public void onApplicationEvent(ContextStartedEvent event){System.out.println("ContextStoppedEvent Recieved");}
+	}
+	 	
+	3.上下文停止事件（ContextStoppedEvent）:
+		当容器调用ConfigurableApplicationContext的Stop()方法停止容器时触发该事件。
+
+	4.上下文关闭事件（ContextClosedEvent）
+		当ApplicationContext被关闭时触发该事件。容器关闭时，其管理的所有单列Bean都被销毁。
+
+	5.请求处理事件（RequestHandledEvent）:
+		在Web应用中，当一个http请求(requst) 结束触发该事件。
+
+     十五.Spring AOP
+
+	1.XML架构
+	 （1）声明一个aspect切面，一个aspect是使用元素声明的，支持 ref 属性引用的。
+	    切面的bean
+	   <bean id="aspecting" class="com.constursion.fc.Aspecting">
+	  <aop:config>
+	  	<aop:aspect id="aspect" ref="aspecting">
+			<aop:pointcut id="selectAll" expression="execution(* com.tutorialpoint.fc.*.*(..))"/>
+			<aop:before pointcut-ref="selectAll" method="beforeAdvice"/>
+			<aop:after pointcut-ref="selectAll" method="afterAdvice"/>
+			<aop:after-returing pointcut-ref="selectAll" returning="retval" method="afterReturningAdvice"/>
+			<aop:after-throwing pointcut-ref="selectAll" throwing="ex" method="afterThrowingAdvice"/>
+		</aop:aspect>
+	  </aop:config>
+
+	poingcut 的id 可以随意命名，表示切入点，excution 里面的配置表示触发切面是的方法，如* com.tutorialpoint.fc.*.*(..) 表示这个包里面所有类实例化
+	的方法都会触发，也可以指定某个方法触发 , 。
+	method 对应 类里面的方法。
+	通过这种方法个人尝试必须通过工厂的方法才会触发切面里面的方法，直接注入的话不会触发。
+	
+	如果excution 里是（* com.tutorialpoint.Study.getLesson1(..)）这样的那么只有调用这个方法的时候才会触发
+	
+	如果excution 里是(* com.tutorialspoint.fc.Car.*(..) 那么这个类中的方法被调用时就会触发切面里的方法。
+
+	如果是 (* com.tutorialpoint.fc.*.*(..) 那么整个包里面的bean被实例化后的方法被调用都会触发。
+
+	一个XML中可以有多个 <aop:config></aop:config>
+	一个<aop:config></aop:config> 里面可以有多个<aop:aspect id="" ref=""></aop:aspect> ref指向切面的bean id必须唯一
+		<aop:pointcut></aop:pointcut> 但是pointcut 的name必须唯一，否则会报错。
+	
+	
+	（2）五种<aop:{ADVICE NAME}> 共有五种声明建议。
+
+		1. <aop:before></aop:before>
+		2.<aop:after></aop:after>
+		3.<aop:around></aop:around>
+		4.<aop:after-returning></aop:after-returning>
+		5.<aop:after-throwing></aop:after-throwing>
+
+
+	2.基于AOP的@AspectJ
+	   在XML配置文件中配置<aop:aspectj-autoproxy/> 这样@AspectJ支持就是可用的
+
+	 要确保classpath 中含AspectJ库文件，1.aspectjrt.jar, 2.aspectjweaver.jar 3.aspectj.jar  4.aopalliance.jar
+	Aspects类和其他任何正常的bean一样，除了它们将会用@AspectJ注释之外，它和其他类一样可能有方法和字段
+
+	比如一个切面类AnnotationAspect
+	
+	@Aspect
+	public class AnnotaionAspect(){
+		@Pointcut(value=("execute(* com.spring.fc.aop.Programmer.*(..))"))
+		public void selectAll(){}
+
+		@Before("selectAll()")
+		public void beforeAdvice(){
+			System.out.println("AnnotationAspect beforAdvice execute !");
+		}
+
+		@After("selectAll()")
+		public void afterAdvice(){
+			System.out.println("AnnotationAspect afterAdvice execute !");
+		}
+		
+		@AfterReturning("selectAll()", returnig="retVal")
+		public void afterReturning(Object retVal){
+			System.out.println("AnnotationAspect  AfterReturning execute !"+retVal.toString());
+		}
+
+		@AfterThrowing("selectAll()", throwing="ex")
+		pulic void afterThrowing(Exception e){
+			System.out.println("AnnotationAspect  afterThrowing execute :"+ex.toString);
+		}
+	}
+
+	注意，@Before(), @After(),@AfterReturning(),@AfterThrowing() ,括号的方法selectAll 必须加"()",和XML有所区别
+	(1) XML中不加括号不会报错 表示的是bean 的id 加了会报错，使用XML 配置切面bean的话 ，切面类中可以没对应的切入点方法 在后面加method是会报错的。
+	
+	(2) 使用注释的方法必须有一个切入点方法，然后在其他注释里面加入方法名.
+
+	(3)  使用注释的方法 也可以在同一个切面中声明多个切入点,这样也是不会报错的
+
+          1）声明切面的时候 比较常用的是 @execute() 这个可以定义到包名，某一各类或者类中的方法
+
+	  2）使用 within(com.spring.fc.aop.*) 表示aop包中的任意连接点 @within(com.spring.fc.aop..*) 表示在aop包中或其子包中的任意连接点
+
+	  3 使用 this(com.spring.fc.aop.Teacher) 表示Teacher类中的代理对象的任意连接点 this在绑定表单中比较常用
+
+	  4. 使用 target(com.spring.fc.aop.Teacher) 表示目标对象的任意连接点，绑定表单时候更加常用
+
+
+	（******）学习新的，切面可以直接切在接口上，不管是那个实例实现了这个接口，调用里面的方法都会触发切面里面的方法 （******）
+
+	往切面中传参数也是可以的比如这样 
+		@Before("selectAll() && args(param)")
+		public void beforeAdvice(String param){
+			System.out.println("InterfaceAspect beforeAdvice start ! Param="+param);
+		}
+	
+	十六.JDBC框架
+	   1.使用JdbcTemplate类执行SQL查询，更新语句和存储过程调用，执行迭代结果集和返回参数值，也捕获JDBC异常。JdbcTemplate类的实例时线程安全配置。
+	所以可以配置JdbcTemplate的单个实例，探后将这个共享的引用安全的注入到多个DAOs中。
+	     使用JdbcTemplate类时常见的做法是在Spring配置文件中配置数据源，然后共享数据源bean依赖注入到DAO类中，并在数据园中设置函数中创建的JdbcTemplate
+	  1. 配置数据源可以在XML文件中配置配置一个bean
+		<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+			<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+			<property name="url" value="jdbc:mysql://localhost:3306/springboottest"></property>
+			<property name="username" value="root"></property>
+			<property name="password" value="123456"></property>
+		/bean>
+
+	    然后再配置几个专门获取dataSource的BaseJDBCTemplate 基类的bean,每次用的时候注入就好,使用自动装载@Autowired
+
+		<bean id="baseJDBCTemplate" class="com.spring.fc.jdbc.BaseJDBCTemplate">
+			<property name="dataSource" ref="dataSource"></property>	
+		</bean>
+
+	2.也可以配置一个jdbc-application.properties 里面配置
+		jdbc.driver=com.mysql.jdbc.Driver
+		jdbc.url=jdbc:mysql://localhost:3306/springboottest
+		jdbc.username=root
+		jdbc.password=123456
+
+        然后再XML文件里配置  <context:property-placeholder location="jdbc-appplication.properties"/>
+
+	然后 dataSource bean 可以这样配
+	<bean id="dataSource" class="com.springframework.jdbc.dataSource.DriverManageDataSource">
+		<property name="driverClassName" value="${jdbc.driver}">
+		<property name="url" value="${jdbc.url}">
+		<property name="username" value="${jdbc.username}">
+		<property name="password" value="${jdbc.password}">
+	</bean>
+
+	
+
+	 3.  接着配置对应DAO的实现类的bean
+		<bean id="studentJDBCTemplate" class="com.spring.fc.jdbc.StudentJDBCTemplate"></bean>
+
+	   如果要把查询出来的记录转成对象，需要实现一个Rowmapper实例
+		public StudentMapper implements RowMapper<Student>{
+			@Override
+			public Studnet mapRow(ResultSet rs， int rowNum) throws SQLException{
+				Student student = new Student();
+				student.setId(rs.getIt("id"));
+				studnet.setName(rs.getString("name"));
+				studnet.setAge(rs.getIt("age"));
+				return student;
+			}
+		}
+	然后再DAOImpl中就可以这样用了
+		List<Student> students = studentJDBCTemplate.query(sql, new StudentMapper);
+	或者可以直接写匿名内部类的方法
+		List<Student> students = studentJDBCTemplate.query(sql,new RowMapper<Student>(){
+			public Student mapRow(ResultSet rs, int rowNum)throw SQLException{
+				Studnet student = new Student();
+				student.setId(rs.getId("id"));
+				studnet.setName(rs.getStirng("name"));
+				studnet.setAge(rs.getIt("age"));
+				return student;
+			}
+		})
+	      rs.getDate()得到的时间是没有时分秒的。
+
+
+	十七.事务管理
+
+	  1.事务四大特性：
+	   1）原子性：事务是一个单独的单元操作，把所有相关联的操作绑在一起，意味着整个序列操作要么都成功，要么都失败，只要有一个失败就全失败。
+
+	   2）一致性： 要求所包含的操作不能违反数据资源的一致性检查，数据资源在事务执行之前处于一个数据的一致性，那么事务执行之后需要保持数据
+	     间的一致性状态。我的理解就是有点像能量守恒，总和保持不变，数据再某个事务中减少的量等于另一个事务中增加的量。
+
+	   3）隔离性：规定各个事务之间的相互影响程度。隔离性概念主要面向对数据资源的并发访问（Concurrency），并兼顾影响事务的一致性。当事务或者
+	     更多事务同时访问同一数据资源的时候，不同的隔离级别决定了各个事务对数据资源的访问的不同行为。
+
+		事务的隔离级别，隔离程度按照从弱到强分别为“Read Uncommitted（未提交读）”，“Read Committed（提交读）”，
+		“Repeatable Read(可重复读)”，和“Serializable(序列化)”；
+
+	   4）事务的持久性（Durability）
+		事务的持久性是指一旦整个事务操作成功提交完成后，对数据所做的变更将被记载并不可逆转。
+
+	2.事务的隔离级别。
+		对于数据库来说，通常都有一个默认的隔离级别。大多数情况下都是ReadCommitted。
+		Oracle默认的是ReadCommitted
+		mySql 默认是Repetable Read
+
+	Oracle 只支持ReadCommitted,和Serializable。 mysql支持四种。如果指定的隔离级别当前数据库不支持，数据库会采取默认的隔离级别替代指定的隔离级别。
+
+	1）READ_UNCOMMITTED: 会出现脏读，不可重复读，幻读（数据读取时不加锁）
+
+	2）READ_COMMITTED: 会出现不可重复读，幻读问题（锁住正在读取的行，在读数据之前加一个锁，读完之后释放锁。）
+
+	3）REPETABLE_READ: 会出现幻读（锁定所读取的所有行。在读取数据之前，加一个锁，读完之后不释放锁，直到事务rollback或者commit后才释放锁）
+
+	4）SERIALIZABLE:保证所有的情况下发生过（锁表：在读数据之前，加锁（被称为条件锁），读完之后不释放锁，直到rollback或者commit后才释放锁）
+	
+	脏读：一个事务读取到另一个事务未提交的更新数据
+	不可重复读： 在同一个事务中，多次读取同一数据返回的结果不同，就是说这个事务的后续读取中读到了另一个事务已提交的数据。
+	可重复读： 在同一个事务中，多次读取数据时，能够保证所读的数据一样，就是说在这个事务中不能读取另一个事务提交的更新数据。
+	幻读： 一个事务读取到另一个事务已提交的insert数据。
+
+	****
+	READ UNCOMMITED 读为提交 简单的说就是事务A读取了事务B未提交的数据，最后事务B又回滚了，导致最后事务A出现了脏读的现象。
+	****
+	READ COMMITTED 读已提交 简单的说就是事务A 只能读取事务B提交的数据，这样不会有脏读现象，但会有不可重复读的问题，假设事务A需要读取两次数据
+	
+	第一次读取完之后，事务B加入并且修改了数据，那么事务第二次读取数据就和第一次读取不一样了，出现了不可重复读的现象。
+	****
+	REPETABLE READ 可重复读。
+
+	Spring TransactionDefinition 对应的五种隔离级别
+	1.TransactionDefinition.ISOLATION_DEFAULT    默认的隔离级别
+	
+	2.TransactionDefinition.ISOLATION_READ_UNCOMMITTED 读未提交 会出现脏读，不可重复读，幻读
+	
+	3.TransactionDefinition.ISOLATION_READ_COMMITTED  读已提交 会出现不可重复读，幻读现象
+	
+	4.TransactionDefinition.ISOLATION_REPETABLE_READ  可重复读  会出现幻读。
+
+	5.TransactionDefinition.ISOLATION_SERIALIZABLE  可阻止脏读，不可重复读，幻读，
+
+	<*******************************************************************>
+	
+
+   	十八.事务的使用。
+
+		1.硬编码的方法，Spring编程式事务管理。
+		使用PlatformTransactionManager 模板来实现事务，PlatformTransactionManager transactionManager 然后再XML中配置事务管理
+	        并且注入，需要new 一个TransactionDefinition实例创建DefaultTransactionDefinition
+		如 TransactionDefiniaiton def = new DefaultTransactionDefinition(); 然后调用getTransaction()方法开始事务，返回一个
+		TransactionStatus 对象。 如 TransactionStatus status = transactionManager.getTransaction(def);
+		
+		提交事务的时候就用 transactionManager.commit(status); 回滚的时候使用，transactionManager.rollback(status)
+
+	public class StudentInfo{
+		private DataSource dataSource；
+		private Jdbcemplate jdbcTemplate
+		private PlatformTransactionManager transactionManager;
+		
+		@Autowired
+		public void setDataSource(DataSource dataSource){
+			this.dataSource = dataSource;
+			this.jdbcTemplate = new JdbcTemplate(dataSource);
+		}
+	
+		public void setTransactionManager(PlatformTransactionManager transactionManager){
+			this.transactionManager = transactionManager;
+		}
+		
+		/**
+		*Insert student and score record
+		*/
+		public void insertInfo(Student student,Score score){
+			TransactonDefinition def = new DefaultTransactionDefinition();
+			TransactionStatus status = transaction.gerTransaction(def);
+			String name = student.getName();
+			int age = student.getAge();
+			final String INSERT_STUDENT = "INSERT INTO student(name,age) values(?,?)";
+			final String INSERT_SCORE = "INSERT INTO score (EnglishScore,MathScore,studentId) values(?,?,?)"
+			KeyHolder keyHolder = new GeneratedKeyHolder();
+			try{
+				jdbcTemplate.update(new PreparedStatementCreator(){
+					public PreparedStatement createPreparedStatement(Connection con)throws SQLException{
+						PreparedStatement ps = con.prepareStatement(INSERT_STUDENT, new String[]{"id"});
+						ps.setString(1,name);
+						ps.setInt(2,age);
+					}
+				},keyHolder);
+				jdbcTemplate.update(INSERT_SCORE,score.gerEnglishScore(),socre.gerMathScore(),keyHolder.getKey.intValue());
+				transactionManager.commit(status);
+				
+			}catch(Exception ex){
+				transactionManager.rollback(status);
+			}
+		}
+		}
+
+
+	2.使用声明式事务。
+		在XML中声明使用<tx:advice></advice>，在其中拦截要加事务的方法。 用aop定义一个切入点切入
+		先配置一个事务管理的bean
+		<bean id="transactionManager"  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+			<property name="dataSource" value="dataSource"></property>
+		</bean> 	
+		 使用tx标签 使用advice通知，method里面设置要加事务的方法
+		<tx:advice id="txAdvice" transaction-manager="transactionManager">
+			<tx:attributes>
+				<tx method name="insert*"  propagation="REQUIRED" isolation="READ_COMMITTED"/>   /***拦截以insert方法加入事务**/
+					//propagation 表示事务的传播性  isolation表示隔离级别
+			</tx:attributes>
+		</tx:advice>
+		
+		然后再使用AOP，声明一个切入点
+		<aop:config proxy-target-class="true"> // proxy-target-class="true" 这个配置比较重要，使用aop自动代理
+			<aop:pointcut id="txMethod" expression="excution(* com.spring.fc.jdbc.service.StudentInfoService.*(..))"/> 
+				//直接切到StudentService这个接口 哪么实现它的接口都会被拦截
+			<aop:advice advice-ref="txAdvice" pointcut-ref="txMethod"><>
+		</aop:config>
+
+		然后配置对应的StudentInfoService 实现类
+		<bean id="StudentInfoImpl" class="com.spring.fc.jdbc.serviceImpl.StudentInfoService">
+		然后调用的时候会使用AOP proxy 自动来代理 
+
+		如果dao层用try-catch 包起来的话catch里面必须抛出异常让通知捕捉到，不然事务不会正常进行。
+
+
+	十九.SpringMVC
+		1.Moddel  （模型）：封装了应用程序，并有普通POJO组成
+		2.View（视图）：主要用于呈现数据模型，并且通过它生成客户端的浏览器可以解释的HTML输出
+		3.Controller（控制器）：主要用于处理用户请求，并且构造合适的模型，并且传递到视图呈现。
+
+	（1）DispatcherServlet
+		整个框架是围绕DispatcherServlet设计的，DispatcherServlet用来处理所有的HTTP请求和响应。主要流程如下
+	     
+	    1.收到一个HTTP请求后，DispatcherServlet根据HandlerMapping 来选择并且调用适当的控制器。
+
+	    2.控制器接受请求，并且基于使用的GET 或POST方法来调用适当的service方法。Service方法将设置基于定义的业务
+	      逻辑的模型数据，并返回视图名称到DispatcherServlet中。
+
+	    3.DispatcherServlet 会从ViewResolver获取帮助，为请求定义视图。
+
+	    4.一旦定义视图，DispatcherServlet将模型数据传递个视图，最后呈现在浏览器中。
+	     所涉及到的组件包括，HandlerMapping，Controller和ViewResolver 是WebApplicationContext的一部分，而
+	    WebApplicationContext 是带有一些对web应用程序必须的额外特性的ApplicationContext的扩展。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
